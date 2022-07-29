@@ -1,3 +1,4 @@
+from multiprocessing import connection
 import sqlite3
 from flask_restful import Resource, reqparse
 from flask_jwt import jwt_required
@@ -34,6 +35,39 @@ class Animal(Resource):
         if row is not None:
             return {"animal":{'type':row[0],'quantity':row[1]}}
 
+    @classmethod
+    def insert(cls,animal): 
+
+        connection = sqlite3.connect("zoo.db")
+        cursor = connection.cursor()
+
+        query = '''
+            INSERT INTO animals
+            VALUES (?,?)
+        '''
+
+        cursor.execute(query,(animal['type'],animal['quantity']))
+        connection.commit()
+        connection.close()
+    
+    @classmethod
+    def update(cls,animal): 
+
+        connection = sqlite3.connect("zoo.db")
+        cursor = connection.cursor()
+
+        query = '''
+            UPDATE animals
+            SET quantity =?
+            WHERE type =?
+        '''
+
+        cursor.execute(query,(animal['quantity'],animal['type']))
+        connection.commit()
+        connection.close()
+
+
+
 
     @jwt_required()
     def post(self, type):
@@ -47,41 +81,66 @@ class Animal(Resource):
             "quantity": request_data["quantity"]
         }
         
-        connection = sqlite3.connect("zoo.db")
-        cursor = connection.cursor()
-
-        query = '''
-            INSERT INTO animals
-            VALUES (?,?)
-        '''
-
-        cursor.execute(query,(animal['type'],animal['quantity']))
-        connection.commit()
-        connection.close()
+        try: 
+            self.insert(animal)
+        except: 
+            return {"Message":f"The animal {animal} could not be inserted"}
 
         return animal, 201
 
     @jwt_required()
     def delete(self,type):
-        global animals
-        animals = list(filter(lambda x:x['type']!=type,animals))
-        return {"Message":f"The animals {type} was removed. The {type} will be soarely missed."}
+        connection = sqlite3.connect('zoo.db')
+        cursor = connection.cursor()
+
+        query = '''
+            DELETE FROM animals
+            WHERE type = ?
+        '''
+
+        cursor.execute(query,(type,))
+        connection.commit()
+        connection.close()
+        return {"Message":f"The animal {type} has been deleted "}
+
 
     @jwt_required()
     def put(self,type):
        
         request_data = Animal.parser.parse_args()
-        animal = next(filter(lambda x:x['type']==type,animals),None)
+        animal = self.find_by_type(type)
+        updated_animal = {'type':type,'quantity':request_data['quantity']}
+
         if animal is None:
-            animal = {'type':type,'quantity':request_data['quantity']}
-            animals.append(animal)
+            try: 
+                self.insert(updated_animal)
+            except: 
+                return {"Message":f"An error ocurred when inserting {type}" }
         else:
-            animal.update(request_data)
-        return animal
+            try: 
+                animal.update(updated_animal)
+            except: 
+                return {"Message":f"An error ocurred when inserting {type}" }
+
+        return updated_animal
 
 # define animals resource
 
 
 class AnimalList(Resource):
     def get(self):
+        connection = sqlite3.connect('zoo.db')
+        cursor = connection.cursor()
+
+        query = '''
+            SELECT * FROM animals
+        '''
+        result = cursor.execute(query)
+
+        animals = []
+
+        for row in result: 
+            animals.append({'type':row[0],'quantity':row[1]})
+
+
         return {"animals": animals}
