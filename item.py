@@ -50,24 +50,6 @@ class Animal(Resource):
         connection.commit()
         connection.close()
     
-    @classmethod
-    def update(cls,animal): 
-
-        connection = sqlite3.connect("zoo.db")
-        cursor = connection.cursor()
-
-        query = '''
-            UPDATE animals
-            SET quantity =?
-            WHERE type =?
-        '''
-
-        cursor.execute(query,(animal['quantity'],animal['type']))
-        connection.commit()
-        connection.close()
-
-
-
 
     @jwt_required()
     def post(self, type):
@@ -113,12 +95,12 @@ class Animal(Resource):
 
         if animal is None:
             try: 
-                self.insert(updated_animal)
+                self.insert(updated_animal) #this one works 
             except: 
                 return {"Message":f"An error ocurred when inserting {type}" }
         else:
             try: 
-                animal.update(updated_animal)
+                animal.update(updated_animal) #this one doesnt
             except: 
                 return {"Message":f"An error ocurred when inserting {type}" }
 
@@ -126,6 +108,21 @@ class Animal(Resource):
 
 # define animals resource
 
+    @classmethod
+    def update(cls,animal): 
+
+        connection = sqlite3.connect("zoo.db")
+        cursor = connection.cursor()
+
+        query = '''
+            UPDATE animals
+            SET quantity =?
+            WHERE type =?
+        '''
+
+        cursor.execute(query,(animal['quantity'],animal['type']))
+        connection.commit()
+        connection.close()
 
 class AnimalList(Resource):
     def get(self):
