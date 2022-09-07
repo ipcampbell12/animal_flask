@@ -100,7 +100,7 @@ class Animal(Resource):
                 return {"Message":f"An error ocurred when inserting {type}" }
         else:
             try: 
-                animal.update(updated_animal) #this one doesnt
+                self.update(updated_animal) #this one doesnt
             except: 
                 return {"Message":f"An error ocurred when inserting {type}" }
 
